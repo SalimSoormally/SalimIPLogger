@@ -27,7 +27,7 @@ jobs:
           printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
           ls -la credentials.json
 
-      - name: Diagnostic: show file head and hex
+      - name: "Diagnostic: show file head and hex"
         shell: bash
         run: |
           echo "---- credentials.json head (first 20 lines) ----"
