@@ -1,30 +1,19 @@
-name: IP Logger
-
-on:
-  schedule:
-    - cron: "*/15 * * * *"
-  workflow_dispatch:
-
-jobs:
-  update-ip:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install gspread google-auth requests
-
       - name: Create credentials file
         run: |
-          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+          printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
 
-      - name: Run IP update script
-        run: python update_ip.py
+      - name: Show file size
+        run: |
+          ls -la credentials.json
+
+      - name: Validate credentials JSON
+        run: |
+          python - <<'PY'
+          import json,sys
+          try:
+              json.load(open('credentials.json'))
+              print('CREDENTIALS_JSON_OK')
+          except Exception as e:
+              print('JSON_PARSE_ERROR:', e)
+              sys.exit(2)
+          PY
