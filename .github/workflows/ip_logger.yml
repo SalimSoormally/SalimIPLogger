@@ -1,33 +1,27 @@
-name: IP Logger
+name: update-ip
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/15 * * * *"
 
 jobs:
   update-ip:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install gspread google-auth requests
+    - name: Install dependencies
+      run: pip install -r requirements.txt
 
-      - name: Decode credentials file
-        shell: bash
-        run: |
-          echo -n "${{ secrets.GOOGLE_CREDENTIALS_BASE64 }}" | base64 --decode > credentials.json
-          echo "Decoded credentials.json:"
-          head -n 20 credentials.json
+    - name: Decode credentials file
+      run: |
+        echo "${{ secrets.GSHEET_CREDENTIALS }}" | base64 -d > credentials.json
 
-      - name: Run IP logger script
-        run: python update_ip.py
+    - name: Run IP logger script
+      run: python update_ip.py
