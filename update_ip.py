@@ -11,7 +11,7 @@ print("Sheets visible to service account:")
 for s in client.openall():
     print("-", s.title)
 
-sheet = client.open("SS_IP_Log").sheet1
+sheet = client.open("SS_IP_log").sheet1
 
 response = requests.get("https://ipinfo.io/json")
 print("Raw response:", response.text)  # Optional debug
