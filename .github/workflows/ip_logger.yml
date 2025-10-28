@@ -1,9 +1,9 @@
 name: IP Logger
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "*/15 * * * *"
-  workflow_dispatch:
 
 jobs:
   update-ip:
@@ -22,51 +22,82 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install gspread google-auth requests
 
-      - name: Create credentials file and validate aggressive clean
+      - name: Create credentials file (safe write)
         run: |
+          # write secret exactly to credentials.json
           printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+          # ensure file exists and show size
+          ls -la credentials.json
+
+      - name: Diagnostic: show file head and hex (safe)
+        shell: bash
+        run: |
+          echo "---- credentials.json head (first 20 lines) ----"
+          sed -n '1,20p' credentials.json || true
+          echo
+          echo "---- credentials.json hexdump (first 256 bytes) ----"
+          head -c 256 credentials.json | od -An -tx1 -v | sed -E 's/^[[:space:]]+//'
+          echo
+          echo "---- credentials.json length and last 64 bytes ----"
+          wc -c credentials.json
+          tail -c 64 credentials.json | od -An -tx1 -v | sed -E 's/^[[:space:]]+//' || true
+
+      - name: Diagnostic: python JSON parse with detailed exception
+        run: |
           python - <<'PY'
-          import json,sys,re
-          # Read raw bytes
-          raw = open('credentials.json','rb').read()
-          # Decode defensively
+          import json,sys,traceback
+
+          fname = 'credentials.json'
+          b = open(fname,'rb').read()
           try:
-              s = raw.decode('utf-8')
+              s = b.decode('utf-8')
           except:
-              s = raw.decode('utf-8', errors='replace')
-          # Remove BOM
-          if s.startswith('\ufeff'):
-              s = s.lstrip('\ufeff')
-          # Unwrap one layer of surrounding quotes if present (common paste error)
-          if s.startswith('"') and s.endswith('"'):
-              s = s[1:-1]
-          # Convert literal backslash-n and backslash-t sequences to real newlines/tabs
-          s = s.replace('\\n', '\n').replace('\\t', '\t')
-          # Trim anything before first { and after last } to isolate JSON object
-          first = s.find('{')
-          last = s.rfind('}')
-          if first != -1 and last != -1 and last >= first:
-              s = s[first:last+1]
-          # Remove non-printable control characters except newline/tab/CR
-          s = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
-          # Final validation and write
+              s = b.decode('utf-8', errors='replace')
+
+          # show a safe representation of the start of file
+          print("==== repr of first 400 chars ====")
+          print(repr(s[:400]))
+          print("==== end repr ====")
+          print("total length:", len(s))
+          # attempt to load and catch the exact JSONDecodeError and show context
           try:
               json.loads(s)
-              with open('credentials.json','w', encoding='utf-8') as f:
-                  f.write(s)
-              print('CREDENTIALS_JSON_OK')
+              print("PARSE_OK")
               sys.exit(0)
           except Exception as e:
-              print('JSON_PARSE_ERROR:', e)
+              print("PARSE_EXCEPTION_TYPE:", type(e).__name__)
+              print("PARSE_EXCEPTION:", e)
+              # If JSONDecodeError, show index and a local context window
+              try:
+                  from json.decoder import JSONDecodeError
+                  if isinstance(e, JSONDecodeError):
+                      idx = e.pos
+                      print("error pos (e.pos):", idx)
+                      start = max(0, idx-40)
+                      end = min(len(s), idx+40)
+                      print("context (start..end):")
+                      ctx = s[start:end]
+                      # show context with visible newlines
+                      print(repr(ctx))
+              except Exception:
+                  pass
+              # show unicode codepoints at error region for low-level debugging
+              try:
+                  # print codepoints around pos
+                  pos = getattr(e,'pos', None)
+                  if pos is None:
+                      pos = 0
+                  start = max(0, pos-10)
+                  end = min(len(s), pos+10)
+                  segment = s[start:end]
+                  print("codepoints around error (index,hex,char):")
+                  for i,ch in enumerate(segment, start=start):
+                      print(i, hex(ord(ch)), repr(ch))
+              except Exception:
+                  pass
               sys.exit(2)
           PY
 
-      - name: Show credentials file info
-        run: |
-          echo "credentials.json size:"
-          ls -la credentials.json || true
-          echo "first 5 lines (masked if secret)"
-          sed -n '1,5p' credentials.json || true
-
       - name: Run IP update script
+        if: success()
         run: python update_ip.py
