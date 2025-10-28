@@ -1,0 +1,29 @@
+
+name: IP Logger
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # Every 5 minutes
+  workflow_dispatch:       # Allow manual trigger
+
+jobs:
+  update-ip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          pip install gspread google-auth
+
+      - name: Create credentials file
+        run: |
+          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+
+      - name: Run IP update script
+        run: python update_ip.py
