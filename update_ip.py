@@ -6,6 +6,11 @@ from datetime import datetime
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 client = gspread.authorize(creds)
+# Debug: List all accessible sheets
+print("Sheets visible to service account:")
+for s in client.openall():
+    print("-", s.title)
+
 sheet = client.open("SS_IP_Log").sheet1
 
 response = requests.get("https://ipinfo.io/json")
