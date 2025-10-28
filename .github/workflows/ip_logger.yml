@@ -22,17 +22,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install gspread google-auth requests
 
-      - name: Create credentials file (safe write)
-        run: |
-          printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
-          ls -la credentials.json
-
-      - name: "Diagnostic: show file head and hex"
+      - name: Decode credentials file
         shell: bash
         run: |
-          echo "---- credentials.json head (first 20 lines) ----"
-          sed -n '1,20p' credentials.json || true
-          echo ""
+          echo "${{ secrets.GOOGLE_CREDENTIALS_BASE64 }}" | base64 -d > credentials.json
+          echo "Decoded credentials.json:"
+          head -n 20 credentials.json
 
       - name: Run IP logger script
         run: python update_ip.py
