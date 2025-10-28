@@ -2,7 +2,7 @@ name: IP Logger
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -19,13 +19,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install gspread google-auth
+          python -m pip install --upgrade pip
+          python -m pip install gspread google-auth requests
 
       - name: Create credentials file
         run: |
-          cat > credentials.json <<'EOF'
-          ${{ secrets.GOOGLE_CREDENTIALS }}
-          EOF
+          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
 
       - name: Run IP update script
         run: python update_ip.py
