@@ -37,7 +37,7 @@ jobs:
           head -c 256 credentials.json | od -An -tx1 -v | sed -E 's/^[[:space:]]+//'
           echo
           echo "---- credentials.json length and last 64 bytes ----"
-          wc -c credentials.json
+          wc -c credentials.json || true
           tail -c 64 credentials.json | od -An -tx1 -v | sed -E 's/^[[:space:]]+//' || true
 
       - name: Diagnostic: python JSON parse with detailed exception
@@ -45,7 +45,11 @@ jobs:
           python - <<'PY'
           import json,sys
           fname = 'credentials.json'
-          b = open(fname,'rb').read()
+          try:
+              b = open(fname,'rb').read()
+          except Exception as e:
+              print("READ_ERROR:", e)
+              sys.exit(2)
           try:
               s = b.decode('utf-8')
           except:
