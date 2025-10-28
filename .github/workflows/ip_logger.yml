@@ -35,4 +35,4 @@ jobs:
           echo ""
 
       - name: Run IP logger script
-        run: python ip_logger.py
+        run: python update_ip.py
