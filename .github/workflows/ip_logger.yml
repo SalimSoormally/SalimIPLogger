@@ -23,9 +23,7 @@ jobs:
 
       - name: Create credentials file
         run: |
-          cat <<EOF > credentials.json
-          ${{ secrets.GOOGLE_CREDENTIALS }}
-          EOF
+          printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
 
       - name: Run IP update script
         run: python update_ip.py
