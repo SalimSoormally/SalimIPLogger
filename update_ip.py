@@ -1,26 +1,20 @@
-import subprocess
-import datetime
 import gspread
-from google.oauth2.service_account import Credentials
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Google Sheets setup
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+# Define the required scopes for Google Sheets and Drive
+scopes = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+# Load credentials from the JSON file
+creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scopes)
+
+# Authorize the client
 client = gspread.authorize(creds)
 
-# Your Google Sheet name
-SHEET_NAME = "SS_IP_Log"
-sheet = client.open(SHEET_NAME).sheet1
+# Open the Google Sheet by name
+sheet = client.open("SS_IP_Log").sheet1
 
-# Get current timestamp
-timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-# Run dig instead of nslookup
-result = subprocess.run(["dig", "+short", "salimsm.ddns.net"], capture_output=True, text=True)
-ip_address = result.stdout.strip()
-
-if ip_address:
-    sheet.append_row([timestamp, ip_address])
-    print(f"Logged: {timestamp} - {ip_address}")
-else:
-    print("IP address not found.")
+# Example: Update cell A1 with new IP
+sheet.update_cell(1, 1, "New IP Address")
