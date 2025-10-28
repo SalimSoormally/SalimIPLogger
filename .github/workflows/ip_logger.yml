@@ -33,3 +33,6 @@ jobs:
           echo "---- credentials.json head (first 20 lines) ----"
           sed -n '1,20p' credentials.json || true
           echo ""
+
+      - name: Run IP logger script
+        run: python ip_logger.py
