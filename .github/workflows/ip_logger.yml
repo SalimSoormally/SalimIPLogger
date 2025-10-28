@@ -22,42 +22,51 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install gspread google-auth requests
 
-      - name: Create credentials file and validate (robust auto-fix)
+      - name: Create credentials file and validate aggressive clean
         run: |
           printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
           python - <<'PY'
           import json,sys,re
+          # Read raw bytes
           raw = open('credentials.json','rb').read()
-          # Try direct decode
+          # Decode defensively
           try:
-              text = raw.decode('utf-8')
+              s = raw.decode('utf-8')
           except:
-              text = raw.decode('utf-8', errors='replace')
-          # Remove BOM if present
-          if text.startswith('\ufeff'):
-              text = text.lstrip('\ufeff')
-          # Trim whitespace and any extraneous characters before first {
-          idx = text.find('{')
-          if idx > 0:
-              text = text[idx:]
-          # If the content is wrapped in quotes (common paste error), unwrap one layer
-          if text.startswith('"') and text.endswith('"'):
-              text = text[1:-1]
-          # Replace literal backslash-n sequences with real newlines
-          text = text.replace('\\n', '\n').replace('\\t','\t')
-          # Remove any stray control chars that commonly break JSON (except standard whitespace)
-          text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+              s = raw.decode('utf-8', errors='replace')
+          # Remove BOM
+          if s.startswith('\ufeff'):
+              s = s.lstrip('\ufeff')
+          # Unwrap one layer of surrounding quotes if present (common paste error)
+          if s.startswith('"') and s.endswith('"'):
+              s = s[1:-1]
+          # Convert literal backslash-n and backslash-t sequences to real newlines/tabs
+          s = s.replace('\\n', '\n').replace('\\t', '\t')
+          # Trim anything before first { and after last } to isolate JSON object
+          first = s.find('{')
+          last = s.rfind('}')
+          if first != -1 and last != -1 and last >= first:
+              s = s[first:last+1]
+          # Remove non-printable control characters except newline/tab/CR
+          s = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
           # Final validation and write
           try:
-              json.loads(text)
+              json.loads(s)
               with open('credentials.json','w', encoding='utf-8') as f:
-                  f.write(text)
+                  f.write(s)
               print('CREDENTIALS_JSON_OK')
               sys.exit(0)
           except Exception as e:
               print('JSON_PARSE_ERROR:', e)
               sys.exit(2)
           PY
+
+      - name: Show credentials file info
+        run: |
+          echo "credentials.json size:"
+          ls -la credentials.json || true
+          echo "first 5 lines (masked if secret)"
+          sed -n '1,5p' credentials.json || true
 
       - name: Run IP update script
         run: python update_ip.py
