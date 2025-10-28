@@ -1,4 +1,3 @@
-
 import subprocess
 import datetime
 import gspread
@@ -14,19 +13,12 @@ SHEET_NAME = "SS_IP_Log"
 sheet = client.open(SHEET_NAME).sheet1
 
 # Get current timestamp
-timestamp = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# Run nslookup
-result = subprocess.run(["nslookup", "salimsm.ddns.net"], capture_output=True, text=True)
-lines = result.stdout.splitlines()
+# Run dig instead of nslookup
+result = subprocess.run(["dig", "+short", "salimsm.ddns.net"], capture_output=True, text=True)
+ip_address = result.stdout.strip()
 
-# Extract IP address (last line usually contains it)
-ip_address = None
-for line in lines:
-    if "Address:" in line:
-        ip_address = line.split("Address:")[-1].strip()
-
-# Append to Google Sheet
 if ip_address:
     sheet.append_row([timestamp, ip_address])
     print(f"Logged: {timestamp} - {ip_address}")
