@@ -24,12 +24,10 @@ jobs:
 
       - name: Create credentials file (safe write)
         run: |
-          # write secret exactly to credentials.json
           printf '%s' "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
-          # ensure file exists and show size
           ls -la credentials.json
 
-      - name: Diagnostic: show file head and hex (safe)
+      - name: Diagnostic: show file head and hex
         shell: bash
         run: |
           echo "---- credentials.json head (first 20 lines) ----"
@@ -46,20 +44,16 @@ jobs:
         run: |
           python - <<'PY'
           import json,sys,traceback
-
           fname = 'credentials.json'
           b = open(fname,'rb').read()
           try:
               s = b.decode('utf-8')
           except:
               s = b.decode('utf-8', errors='replace')
-
-          # show a safe representation of the start of file
           print("==== repr of first 400 chars ====")
           print(repr(s[:400]))
           print("==== end repr ====")
           print("total length:", len(s))
-          # attempt to load and catch the exact JSONDecodeError and show context
           try:
               json.loads(s)
               print("PARSE_OK")
@@ -67,7 +61,6 @@ jobs:
           except Exception as e:
               print("PARSE_EXCEPTION_TYPE:", type(e).__name__)
               print("PARSE_EXCEPTION:", e)
-              # If JSONDecodeError, show index and a local context window
               try:
                   from json.decoder import JSONDecodeError
                   if isinstance(e, JSONDecodeError):
@@ -77,16 +70,11 @@ jobs:
                       end = min(len(s), idx+40)
                       print("context (start..end):")
                       ctx = s[start:end]
-                      # show context with visible newlines
                       print(repr(ctx))
               except Exception:
                   pass
-              # show unicode codepoints at error region for low-level debugging
               try:
-                  # print codepoints around pos
-                  pos = getattr(e,'pos', None)
-                  if pos is None:
-                      pos = 0
+                  pos = getattr(e,'pos', None) or 0
                   start = max(0, pos-10)
                   end = min(len(s), pos+10)
                   segment = s[start:end]
