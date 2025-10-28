@@ -1,9 +1,9 @@
-
 name: IP Logger
+
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Every 5 minutes
-  workflow_dispatch:       # Allow manual trigger
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   update-ip:
@@ -23,7 +23,9 @@ jobs:
 
       - name: Create credentials file
         run: |
-          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+          cat <<EOF > credentials.json
+          ${{ secrets.GOOGLE_CREDENTIALS }}
+          EOF
 
       - name: Run IP update script
         run: python update_ip.py
