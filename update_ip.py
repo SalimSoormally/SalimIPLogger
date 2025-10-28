@@ -1,40 +1,43 @@
 import requests
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from datetime import datetime
+import os
+import sys
 
-# Google API scopes for Sheets and Drive
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Load credentials and authorize gspread client
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", SCOPES)
+KEYFILE = "credentials.json"
+SPREADSHEET_NAME = "SS_IP_Log"
+
+if not os.path.exists(KEYFILE):
+    print("Credentials file not found:", KEYFILE)
+    sys.exit(1)
+
+creds = Credentials.from_service_account_file(KEYFILE, scopes=SCOPES)
 client = gspread.authorize(creds)
 
-# Open the Google Sheet by name
-SHEET_NAME = "SS_IP_Log"  # Make sure this matches your sheet name
-sheet = client.open(SHEET_NAME).sheet1
-
-# Fetch current public IP
 try:
-    ip = requests.get("https://api.ipify.org").text
+    sheet = client.open(SPREADSHEET_NAME).sheet1
 except Exception as e:
-    print(f"Error fetching IP: {e}")
-    exit(1)
+    print("Error opening spreadsheet:", e)
+    sys.exit(1)
 
-# Prepare timestamp
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-# Find next empty row
-next_row = len(sheet.get_all_values()) + 1
-
-# Update the sheet: Column A = Timestamp, Column B = IP
 try:
+    ip = requests.get("https://api.ipify.org", timeout=10).text.strip()
+except Exception as e:
+    print("Error fetching IP:", e)
+    sys.exit(1)
+
+timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+try:
+    next_row = len(sheet.get_all_values()) + 1
     sheet.update_cell(next_row, 1, timestamp)
     sheet.update_cell(next_row, 2, ip)
     print(f"Updated row {next_row} with IP: {ip}")
 except Exception as e:
-    print(f"Error updating Google Sheet: {e}")
-    exit(1)
+    print("Error updating Google Sheet:", e)
+    sys.exit(1)
