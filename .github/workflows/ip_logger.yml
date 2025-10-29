@@ -1,7 +1,9 @@
 name: update-ip
 
 on:
-  workflow_dispatch:
+  schedule:
+    - cron: '*/16 * * * *'  # Runs every 16 minutes
+  workflow_dispatch:        # Allows manual triggering
 
 jobs:
   update-ip:
