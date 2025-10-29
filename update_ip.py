@@ -22,10 +22,11 @@ hostname = "salimsm.ddns.net"
 ip = socket.gethostbyname(hostname)
 print(f"Resolved IP: {ip}")
 
-# Use Mauritius local time for timestamp
+# Use Mauritius local time for timestamp in ISO format
 mauritius = pytz.timezone("Indian/Mauritius")
-timestamp = datetime.now(mauritius).strftime("%d/%m/%Y %H:%M:%S")
+timestamp = datetime.now(mauritius).strftime("%Y-%m-%d %H:%M:%S")  # ISO format
 
 # Log timestamp and IP
 sheet.append_row([timestamp, ip])
 print(f"Logged IP {ip} at {timestamp}")
+``
