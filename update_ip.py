@@ -29,4 +29,3 @@ timestamp = datetime.now(mauritius).strftime("%Y-%m-%d %H:%M:%S")  # ISO format
 # Log timestamp and IP
 sheet.append_row([timestamp, ip])
 print(f"Logged IP {ip} at {timestamp}")
-``
